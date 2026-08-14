@@ -60,6 +60,7 @@ type ZimMetaData struct {
 }
 
 type Config struct {
+	Command    string // "update" or "search"
 	ZimDir     string
 	AutoUpdate bool
 	Workers    int
@@ -679,20 +680,69 @@ func askConfirmation(prompt string) bool {
 }
 
 func parseFlags() *Config {
-	cfg := &Config{}
-
-	flag.StringVar(&cfg.ZimDir, "dir", ".", "Path to directory containing .zim files")
-	flag.StringVar(&cfg.Search, "search", "", "Initial query string for interactive search mode")
-	flag.BoolVar(&cfg.AutoUpdate, "a", false, "Automatic update without confirmation prompt")
-	flag.IntVar(&cfg.Workers, "j", 1, "Number of concurrent worker downloads")
-	flag.Int64Var(&cfg.RateLimit, "limit", 0, "Bandwidth rate limit in MiB/s per download (0 = unlimited)")
-	flag.BoolVar(&cfg.CheckSize, "check-size", false, "Perform HTTP HEAD requests to verify remote file size integrity")
-
-	flag.Parse()
-
-	if flag.NArg() > 0 && cfg.Search == "" {
-		cfg.ZimDir = flag.Arg(0)
+	cfg := &Config{
+		Command: "update", // Default mode
 	}
+
+	// 1. Shared / Global Flag Definitions
+	var zimDir string
+	var autoUpdate bool
+	var workers int
+	var rateLimit int64
+	var checkSize bool
+
+	// 2. Define FlagSet for "search" subcommand
+	searchCmd := flag.NewFlagSet("search", flag.ExitOnError)
+	searchCmd.StringVar(&zimDir, "dir", ".", "Path to directory containing .zim files")
+	searchCmd.IntVar(&workers, "j", 1, "Number of concurrent worker downloads")
+	searchCmd.Int64Var(&rateLimit, "limit", 0, "Bandwidth rate limit in MiB/s per download (0 = unlimited)")
+	searchCmd.BoolVar(&autoUpdate, "a", false, "Automatic download without confirmation prompt")
+
+	// 3. Define FlagSet for default "update" mode
+	updateCmd := flag.NewFlagSet("update", flag.ExitOnError)
+	updateCmd.StringVar(&zimDir, "dir", ".", "Path to directory containing .zim files")
+	updateCmd.BoolVar(&autoUpdate, "a", false, "Automatic update without confirmation prompt")
+	updateCmd.IntVar(&workers, "j", 1, "Number of concurrent worker downloads")
+	updateCmd.Int64Var(&rateLimit, "limit", 0, "Bandwidth rate limit in MiB/s per download (0 = unlimited)")
+	updateCmd.BoolVar(&checkSize, "check-size", false, "Perform HTTP HEAD requests to verify remote file size integrity")
+
+	if len(os.Args) < 2 {
+		// Default invocation: ./zim-updater
+		_ = updateCmd.Parse(os.Args[1:])
+	} else {
+		switch os.Args[1] {
+		case "search":
+			cfg.Command = "search"
+			_ = searchCmd.Parse(os.Args[2:])
+
+			// If an optional search string is provided as a positional argument after 'search'
+			// Example: ./zim-updater search wikipedia
+			if searchCmd.NArg() > 0 {
+				cfg.Search = searchCmd.Arg(0)
+			}
+
+		case "update":
+			cfg.Command = "update"
+			_ = updateCmd.Parse(os.Args[2:])
+			if updateCmd.NArg() > 0 {
+				zimDir = updateCmd.Arg(0)
+			}
+
+		default:
+			// Fallback: If 1st argument isn't "search" or "update", treat as standard flags
+			// Example: ./zim-updater -dir /path/to/zims
+			_ = updateCmd.Parse(os.Args[1:])
+			if updateCmd.NArg() > 0 {
+				zimDir = updateCmd.Arg(0)
+			}
+		}
+	}
+
+	cfg.ZimDir = zimDir
+	cfg.AutoUpdate = autoUpdate
+	cfg.Workers = workers
+	cfg.RateLimit = rateLimit
+	cfg.CheckSize = checkSize
 
 	if cfg.Workers < 1 {
 		cfg.Workers = 1
@@ -724,20 +774,14 @@ func main() {
 
 	var tasks []Task
 
-	isSearchMode := false
-	flag.Visit(func(f *flag.Flag) {
-		if f.Name == "search" {
-			isSearchMode = true
-		}
-	})
-
-	if isSearchMode || cfg.Search != "" {
+	switch cfg.Command {
+	case "search":
 		tasks, err = handleCatalogSearch(remoteZims, cfg.Search)
 		if err != nil {
 			fmt.Printf("%s%v%s\n", Yellow, err, Reset)
 			return
 		}
-	} else {
+	case "update":
 		tasks, err = runUpdateMode(ctx, cfg, remoteZims)
 		if err != nil {
 			log.Fatalf("%s✗ Update scan failed: %v%s\n", Red, err, Reset)

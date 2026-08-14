@@ -12,7 +12,7 @@ A fast, concurrent CLI tool written in Go to search, download, and update offlin
 * **Bandwidth Control:** Built-in rate limiter to throttle download speed per worker.
 * **SHA256 Integrity Checks:** Automatically verifies downloaded archives against remote checksum sidecars.
 * **Resumable Downloads:** Supports HTTP Range requests to resume interrupted downloads cleanly.
-* **Cross-Platform Space Guard:** Verifies remaining disk space before starting multi-gigabyte downloads on both Unix and Windows systems.
+* **Cross-Platform Space Guard:** Verifies remaining disk space before starting multi-gigabyte downloads on Unix and Windows systems.
 
 ---
 
@@ -40,31 +40,39 @@ go build -o kiwix-zim-updater .
 
 ## Usage
 
-### 1. Interactive Search & Download Mode
+### 1. Interactive Search Mode (`search`)
 
-Search the remote catalog interactively for specific archives:
+Launch the interactive search interface to browse and multi-select archives from the Kiwix catalog:
 
 ```bash
-./kiwix-zim-updater -search "wikipedia" -dir /path/to/zim/folder
+# Open blank interactive search TUI
+./kiwix-zim-updater search -dir /path/to/zim/folder
+
+# Open search TUI pre-filtered with a query term
+./kiwix-zim-updater search "wikipedia" -dir /path/to/zim/folder
 
 ```
 
 **Keybindings in Search Mode:**
 
 * `Up` / `Down` or `Ctrl+P` / `Ctrl+N`: Navigate items
-* `Space`: Select/deselect an item
-* `Ctrl+A`: Select all matches
-* `Esc`: Clear selection
+* `Space`: Select/deselect item
+* `Ctrl+A`: Select all visible matches
+* `Esc`: Clear selected items
 * `Enter`: Confirm selection and start downloading
 * `Ctrl+C`: Exit search
 
 ---
 
-### 2. Auto-Update Local Archives
+### 2. Auto-Update Local Archives (`update` / default)
 
-Scan a directory containing `.zim` files, check for newer remote versions, and prompt to download updates:
+Scan a directory containing local `.zim` files, compare against remote versions, and download updates:
 
 ```bash
+# Run update check with confirmation prompt
+./kiwix-zim-updater update -dir /path/to/zim/folder
+
+# Running without subcommands defaults to update mode
 ./kiwix-zim-updater -dir /path/to/zim/folder
 
 ```
@@ -72,38 +80,48 @@ Scan a directory containing `.zim` files, check for newer remote versions, and p
 Skip confirmation prompts and run headlessly:
 
 ```bash
-./kiwix-zim-updater -dir /path/to/zim/folder -a
+./kiwix-zim-updater update -dir /path/to/zim/folder -a
 
 ```
 
 ---
 
-### 3. Advanced Flags
+## Flags Reference
+
+### `search` Subcommand Flags
 
 | Flag | Type | Default | Description |
 | --- | --- | --- | --- |
-| `-dir` | `string` | `.` | Target directory for local `.zim` files |
-| `-search` | `string` | `""` | Initial query to trigger interactive search mode |
-| `-a` | `bool` | `false` | Automatically confirm downloads without prompting |
+| `-dir` | `string` | `.` | Directory to save downloaded `.zim` files |
 | `-j` | `int` | `1` | Number of parallel download workers |
 | `-limit` | `int64` | `0` | Bandwidth limit per worker in MiB/s (`0` = unlimited) |
-| `-check-size` | `bool` | `false` | Verify remote file size via HTTP HEAD during update scan |
+| `-a` | `bool` | `false` | Skip download confirmation prompt after selection |
+
+### `update` Subcommand Flags
+
+| Flag | Type | Default | Description |
+| --- | --- | --- | --- |
+| `-dir` | `string` | `.` | Target directory containing local `.zim` files |
+| `-a` | `bool` | `false` | Automatically proceed with downloads without prompting |
+| `-j` | `int` | `1` | Number of parallel download workers |
+| `-limit` | `int64` | `0` | Bandwidth limit per worker in MiB/s (`0` = unlimited) |
+| `-check-size` | `bool` | `false` | Perform HTTP HEAD requests to verify remote file size integrity |
 
 ---
 
 ## Examples
 
-**Download with 4 concurrent workers limited to 10 MiB/s per worker:**
+**Search for StackExchange archives with 4 workers limited to 10 MiB/s each:**
 
 ```bash
-./kiwix-zim-updater -search "stackexchange" -dir ./kiwix-data -j 4 -limit 10
+./kiwix-zim-updater search "stackexchange" -dir ./kiwix-data -j 4 -limit 10
 
 ```
 
 **Headless automated update scan with file size validation:**
 
 ```bash
-./kiwix-zim-updater -dir /var/media/kiwix -a -check-size
+./kiwix-zim-updater update -dir /var/media/kiwix -a -check-size
 
 ```
 
