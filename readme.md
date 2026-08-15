@@ -32,7 +32,7 @@ git clone https://github.com/evrial/kiwix-zim-updater.git
 cd kiwix-zim-updater
 
 # Build the executable for your current OS
-go build -o kiwix-zim-updater .
+go build -o zim-updater .
 
 ```
 
@@ -46,10 +46,10 @@ Launch the interactive search interface to browse and multi-select archives from
 
 ```bash
 # Open blank interactive search TUI
-./kiwix-zim-updater search -dir /path/to/zim/folder
+./zim-updater search -dir /path/to/zim/folder
 
 # Open search TUI pre-filtered with a query term
-./kiwix-zim-updater search "wikipedia" -dir /path/to/zim/folder
+./zim-updater search "wikipedia" -dir /path/to/zim/folder
 
 ```
 
@@ -70,17 +70,17 @@ Scan a directory containing local `.zim` files, compare against remote versions,
 
 ```bash
 # Run update check with confirmation prompt
-./kiwix-zim-updater update -dir /path/to/zim/folder
+./zim-updater update -dir /path/to/zim/folder
 
 # Running without subcommands defaults to update mode
-./kiwix-zim-updater -dir /path/to/zim/folder
+./zim-updater -dir /path/to/zim/folder
 
 ```
 
 Skip confirmation prompts and run headlessly:
 
 ```bash
-./kiwix-zim-updater update -dir /path/to/zim/folder -a
+./zim-updater update -dir /path/to/zim/folder -a
 
 ```
 
@@ -114,14 +114,14 @@ Skip confirmation prompts and run headlessly:
 **Search for StackExchange archives with 4 workers limited to 10 MiB/s each:**
 
 ```bash
-./kiwix-zim-updater search "stackexchange" -dir ./kiwix-data -j 4 -limit 10
+./zim-updater search "stackexchange" -dir ./kiwix-data -j 4 -limit 10
 
 ```
 
 **Headless automated update scan with file size validation:**
 
 ```bash
-./kiwix-zim-updater update -dir /var/media/kiwix -a -check-size
+./zim-updater update -dir /var/media/kiwix -a -check-size
 
 ```
 

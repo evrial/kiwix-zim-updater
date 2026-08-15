@@ -1,7 +1,7 @@
 # Program metadata
-BINARY_NAME=kiwix-zim-updater
+BINARY_NAME=zim-updater
 BUILD_DIR=build
-VERSION?=1.0.0
+VERSION?=1.0.1
 LDFLAGS=-ldflags "-s -w -X main.version=$(VERSION)"
 
 .PHONY: all clean build deps test build-all build-linux build-darwin build-windows build-arm
